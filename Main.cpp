@@ -1,4 +1,5 @@
 #include <iostream>
+#include <direct.h>
 #include <limits>
 #include <algorithm>
 #include <string>
@@ -6,9 +7,13 @@
 #include<fstream>
 #include <cstdio>
 #include <ctime>
+#include <sstream>
 #include <unordered_map>
 #include<Bits.h>
 #include<bitset>
+#include<Windows.h>
+#define MAX_TREE_HT 256 
+#include"DuyetFolder.h"
 #include"MinHeap.h"
 using namespace std;
 constexpr std::size_t BITS_PER_BYTE = std::numeric_limits<byte>::digits;
@@ -66,7 +71,7 @@ void HuffmanCodes(int size)
 	storeCodes(MinHeap.top(), "");
 }
 
-//Ham tinh tan suat voi moi ki tu cho bien Fre duoc khai bao o dau
+//Ham tinh tan suat voi moi ki tu cho bien Frequency duoc khai bao o dau
 void calcFrequency(string str, int n)
 {
 	for (int i = 0; i < str.size(); i++)
@@ -100,19 +105,10 @@ string Decode(struct Minheap* root, string s)
 }
 int main()
 {
-
-	std::clock_t start;// Dem thoi gian doc file
-	double duration;
-	start = std::clock();
-	cout << "Dang doc file..." << endl;
-	ifstream infile;
-	ifstream ifs("input.txt");
-	string Content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-	string EncodedString, DecodedString;
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-	system("cls");
-	cout << "Doc File hoan tat ("<< duration<<"s)" << endl;
-	while (true)
+	vector<string> list = DuyetFolder("Go");
+	vector<priority_queue<Minheap*, vector<Minheap*>, Compare>> List_MinHeap;
+	vector<string>List_EncodedString;
+	while (true) 
 	{
 		cout << "---------------------------------------" << endl;
 		cout << "1. Nen file" << endl;
@@ -125,44 +121,65 @@ int main()
 		{
 			std::clock_t start;
 			start = std::clock();
-			system("cls");
-			cout << "Nen file..." << endl;
-			calcFrequency(Content, Content.length());
-			HuffmanCodes(Content.length());
-			ofstream fileout;
-			fileout.open("FileNen.txt", ios::binary);
-			cout << "Tan so cua cac ki tu:\n";
-			for (auto v = Codes.begin(); v != Codes.end(); v++)
+			for (int i = 0;i < list.size();i++)
 			{
-				cout << v->first << ' ' << v->second << endl;
+				std::clock_t start;
+				double duration;
+				start = std::clock();
+				ifstream infile;
+				string k = list.at(i);
+				ifstream ifs("Go/" + k);
+				string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+				string encodedString, decodedString;
+				calcFrequency(content, content.length());
+				HuffmanCodes(content.length());
+				duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+				std::cout << "printf: " << duration << '\n';
+				ofstream fileout;
+				fileout.open("FileNen.txt", ios::app);
+				fileout << list.at(i) << endl;
+				for (auto v = Codes.begin(); v != Codes.end(); v++)
+				{
+					cout << v->first << ' ' << v->second << endl;
+				}
+				for (auto i : content)
+				{
+					encodedString += Codes[i];
+				}
+				for (std::size_t i = 0; i < encodedString.size(); i += BITS_PER_BYTE)
+				{
+					byte b = bits_in_byte(encodedString.substr(i, BITS_PER_BYTE)).to_ulong();
+					fileout << b;
+				}
+				List_MinHeap.push_back(MinHeap);
+				List_EncodedString.push_back(encodedString);
+				fileout << endl;
 			}
-			for (auto i : Content)
-			{
-				EncodedString += Codes[i];
-			}
-			for (std::size_t i = 0; i < EncodedString.size(); i += BITS_PER_BYTE)
-			{
-				byte b = bits_in_byte(EncodedString.substr(i, BITS_PER_BYTE)).to_ulong();
-				fileout << b;
-			}
-			duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+			double duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
 			cout << "\nNen hoan tat (" << duration << "s)" << endl;
 			system("pause");
 			system("cls");
-			fileout.close();
 		}
 		else if (luachon == 2)
 		{
 			std::clock_t start;
 			start = std::clock();
-			system("cls");
-			cout << "Giai Nen file..." << endl;
-			ofstream out2("FileGiaiNen.txt", ios::out);
-			DecodedString = Decode(MinHeap.top(), EncodedString);
-			out2 << DecodedString;
-			out2.close();
-			duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-			system("cls");
+			string filename = "FileGiaiNen_";
+			for (int i = 0;i < list.size();i++)
+			{
+				ostringstream ss;
+				string DecodedString;
+				cout << "\nNen hoan tat\n" << endl;
+				system("cls");
+				cout << "Giai Nen file..." << endl;
+				ss << filename << i << ".txt";
+				ofstream out2(ss.str().c_str(), ios::out);
+				DecodedString = Decode(List_MinHeap.at(i).top(), List_EncodedString.at(i));
+				out2 << DecodedString;
+				out2.close();
+				system("cls");
+			}
+			double duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
 			cout << "\nGiai nen hoan tat (" << duration << "s)" << endl;
 			system("pause");
 			system("cls");
@@ -173,3 +190,4 @@ int main()
 		}
 	}
 }
+
